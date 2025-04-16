@@ -15,8 +15,8 @@ const NotificationTray: FC = () => {
 					key={notification.id}
 					className={`p-4 rounded-md shadow-md transition-all duration-300 flex justify-between items-start ${
 						notification.type === 'error'
-							? 'bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-200 border border-red-200 dark:border-red-800'
-							: 'bg-green-50 text-green-800 dark:bg-green-900/20 dark:text-green-200 border border-green-200 dark:border-green-800'
+							? 'bg-red-50 text-red-800 dark:bg-red-900/90 dark:text-red-200 border border-red-200 dark:border-red-800'
+							: 'bg-green-50 text-green-800 dark:bg-green-900/90 dark:text-green-200 border border-green-200 dark:border-green-800'
 					}`}
 				>
 					<p>{notification.message}</p>

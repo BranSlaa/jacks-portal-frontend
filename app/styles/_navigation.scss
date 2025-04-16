@@ -1,0 +1,28 @@
+// Navigation container
+.nav-container {
+	position: static;
+}
+
+// Mega menu styles
+.mega-menu-active {
+	max-height: 100vh;
+	opacity: 1;
+	visibility: visible;
+	box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+	top: var(--headerHeight, 4rem);
+	transition: 
+		opacity 0.25s ease,
+		visibility 0s,
+		max-height 0.35s ease;
+}
+
+.mega-menu-inactive {
+	max-height: 0;
+	opacity: 0;
+	visibility: hidden;
+	top: var(--headerHeight, 4rem);
+	transition: 
+		opacity 0.2s ease,
+		visibility 0s linear 0.2s,
+		max-height 0.25s ease;
+} 

@@ -4,33 +4,112 @@ import { createClient } from '@/utils/supabase/client';
 import { Campaign } from '@/app/types/campaigns';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import React from 'react';
+import { useParams } from 'next/navigation';
+import CampaignContactsList from '@/components/email/campaign/CampaignContactsList';
+import EmailEventsList from '@/components/email/EmailEventsList';
 
-export default function CampaignDetailedPage({
-	params,
-}: {
-	params: { id: string };
-}) {
+export default function CampaignDetailedPage() {
+	// Get campaign ID from URL params
+	const params = useParams();
+	const id = params?.id as string;
 	const [campaign, setCampaign] = useState<Campaign | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	const [clientName, setClientName] = useState<string>('');
+	const [templateName, setTemplateName] = useState<string>('');
+	const [progress, setProgress] = useState<{ sent: number; total: number }>({
+		sent: 0,
+		total: 0,
+	});
+	const [activeTab, setActiveTab] = useState<'contacts' | 'analytics'>(
+		'contacts',
+	);
 	const supabase = createClient();
 
 	useEffect(() => {
+		if (!id) return;
+
 		const fetchCampaign = async () => {
 			setLoading(true);
 			try {
 				const { data, error } = await supabase
 					.from('campaigns')
 					.select('*')
-					.eq('id', params.id)
+					.eq('id', id)
 					.single();
 
 				if (error) {
 					setError(error.message);
 					console.error('Error fetching campaign:', error);
-				} else {
-					setCampaign(data);
+					setLoading(false);
+					return;
 				}
+
+				setCampaign(data);
+
+				if (data.client_id) {
+					const { data: clientData, error: clientError } =
+						await supabase
+							.from('clients')
+							.select('name')
+							.eq('id', data.client_id)
+							.single();
+
+					if (clientError) {
+						console.error('Error fetching client:', clientError);
+					} else if (clientData) {
+						setClientName(clientData.name);
+					}
+				}
+
+				if (data.template_id) {
+					const { data: templateData, error: templateError } =
+						await supabase
+							.from('templates')
+							.select('name')
+							.eq('id', data.template_id)
+							.single();
+
+					if (templateError) {
+						console.error(
+							'Error fetching template:',
+							templateError,
+						);
+					} else if (templateData) {
+						setTemplateName(templateData.name);
+					}
+				}
+
+				const { data: contactsData, error: contactsError } =
+					await supabase
+						.from('campaign_contacts')
+						.select('contact_id', { count: 'exact' })
+						.eq('campaign_id', id);
+
+				if (contactsError) {
+					console.error(
+						'Error fetching total contacts:',
+						contactsError,
+					);
+				}
+
+				const { data: sentData, error: sentError } = await supabase
+					.from('sent_emails')
+					.select('id', { count: 'exact' })
+					.eq('campaign_id', id);
+
+				if (sentError) {
+					console.error('Error fetching sent emails:', sentError);
+				}
+
+				const totalContacts = contactsData?.length || 0;
+				const sentEmails = sentData?.length || 0;
+
+				setProgress({
+					sent: sentEmails,
+					total: totalContacts,
+				});
 			} catch (err) {
 				console.error('Unexpected error:', err);
 				setError('An unexpected error occurred');
@@ -40,7 +119,7 @@ export default function CampaignDetailedPage({
 		};
 
 		fetchCampaign();
-	}, [params.id, supabase]);
+	}, [id, supabase]);
 
 	if (loading) {
 		return (
@@ -60,7 +139,7 @@ export default function CampaignDetailedPage({
 					{error || 'Campaign not found'}
 				</p>
 				<Link
-					href="/campaigns"
+					href="/email/campaigns"
 					className="mt-4 inline-block text-blue-600 dark:text-blue-400 hover:underline"
 				>
 					← Back to Campaigns
@@ -99,7 +178,7 @@ export default function CampaignDetailedPage({
 		<div className="max-w-5xl mx-auto">
 			{/* Back button */}
 			<Link
-				href="/campaigns"
+				href="/email/campaigns"
 				className="mb-6 inline-flex items-center text-blue-600 dark:text-blue-400 hover:underline"
 			>
 				<svg
@@ -136,9 +215,12 @@ export default function CampaignDetailedPage({
 						>
 							{campaign.status || 'No Status'}
 						</span>
-						<button className="bg-blue-600 text-white px-4 py-1 rounded-md hover:bg-blue-700 transition-colors">
+						<Link
+							href={`/email/campaigns/${id}/edit`}
+							className="bg-blue-600 text-white px-4 py-1 rounded-md hover:bg-blue-700 transition-colors"
+						>
 							Edit Campaign
-						</button>
+						</Link>
 					</div>
 				</div>
 			</div>
@@ -154,10 +236,10 @@ export default function CampaignDetailedPage({
 					<div className="space-y-4">
 						<div>
 							<h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-								Client ID
+								Client
 							</h3>
 							<p className="text-gray-900 dark:text-white">
-								{campaign.client_id || 'Not assigned'}
+								{clientName || 'Not assigned'}
 							</p>
 						</div>
 
@@ -166,16 +248,16 @@ export default function CampaignDetailedPage({
 								Template
 							</h3>
 							<p className="text-gray-900 dark:text-white">
-								{campaign.template_id || 'No template'}
+								{templateName || 'No template'}
 							</p>
 						</div>
 
 						<div>
 							<h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-								Start Date
+								Created Date
 							</h3>
 							<p className="text-gray-900 dark:text-white">
-								{formatDate(campaign.start_date)}
+								{formatDate(campaign.created_at)}
 							</p>
 						</div>
 					</div>
@@ -190,10 +272,10 @@ export default function CampaignDetailedPage({
 					<div className="space-y-4">
 						<div>
 							<h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-								Created At
+								Start Date
 							</h3>
 							<p className="text-gray-900 dark:text-white">
-								{formatDate(campaign.created_at)}
+								{formatDate(campaign.start_date)}
 							</p>
 						</div>
 
@@ -208,25 +290,57 @@ export default function CampaignDetailedPage({
 
 						<div>
 							<h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-								Progress
+								Progress ({progress.sent} of {progress.total}{' '}
+								emails sent)
 							</h3>
 							<div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mt-2">
-								<div className="bg-blue-600 h-2.5 rounded-full w-1/3"></div>
+								<div
+									className="bg-blue-600 h-2.5 rounded-full"
+									style={{
+										width:
+											progress.total > 0
+												? `${Math.min(100, (progress.sent / progress.total) * 100)}%`
+												: '0%',
+									}}
+								></div>
 							</div>
 						</div>
 					</div>
 				</div>
 			</div>
 
-			{/* Additional sections could go here */}
+			{/* Tabs for Contacts and Analytics */}
 			<div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mt-6">
-				<h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-					Campaign Analytics
-				</h2>
-				<p className="text-gray-600 dark:text-gray-400">
-					Analytics data will be displayed here. This section is a
-					placeholder for future development.
-				</p>
+				<div className="border-b border-gray-200 dark:border-gray-700 mb-4">
+					<nav className="-mb-px flex" aria-label="Tabs">
+						<button
+							className={`py-2 px-4 text-center border-b-2 font-medium text-sm ${
+								activeTab === 'contacts'
+									? 'border-blue-500 text-blue-600 dark:text-blue-400'
+									: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+							}`}
+							onClick={() => setActiveTab('contacts')}
+						>
+							Contacts
+						</button>
+						<button
+							className={`ml-8 py-2 px-4 text-center border-b-2 font-medium text-sm ${
+								activeTab === 'analytics'
+									? 'border-blue-500 text-blue-600 dark:text-blue-400'
+									: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+							}`}
+							onClick={() => setActiveTab('analytics')}
+						>
+							Analytics
+						</button>
+					</nav>
+				</div>
+
+				{activeTab === 'contacts' ? (
+					<CampaignContactsList campaignId={id} />
+				) : (
+					<EmailEventsList campaignId={id} />
+				)}
 			</div>
 		</div>
 	);
