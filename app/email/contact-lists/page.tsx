@@ -335,7 +335,7 @@ export default function ContactListPage() {
 				</h1>
 				<div className="flex space-x-2">
 					<Link
-						href="/email/contact-lists/create"
+						href="/email/contact-lists/new"
 						className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center"
 					>
 						<svg

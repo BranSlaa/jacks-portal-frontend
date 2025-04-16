@@ -40,7 +40,7 @@ export default function CampaignForm({
 		campaign.days_of_week || ['1', '2', '3', '4', '5'],
 	);
 	const [contacts, setContacts] = useState<any[]>([]);
-
+	const [maxContacts, setMaxContacts] = useState(0);
 	const router = useRouter();
 	const { showSuccess, showError } = useNotifications();
 	const supabase = createClient();
@@ -139,6 +139,7 @@ export default function CampaignForm({
 
 					// Set contacts data
 					setContacts(contactsData || []);
+					setMaxContacts(contactsData?.length || 0);
 				} else {
 					setContacts([]);
 				}
@@ -500,7 +501,11 @@ export default function CampaignForm({
 										<p className="mr-2">Sent Today:</p>
 										<p className="font-bold">
 											{campaign.sent_today_count || 0} /{' '}
-											{campaign.max_emails_per_day || 50}
+											{Math.min(
+												campaign.max_emails_per_day ||
+													100,
+												maxContacts,
+											)}
 										</p>
 									</div>
 									<button

@@ -22,7 +22,7 @@ export function MainNav() {
 			megaMenu: {
 				type: 'campaigns',
 				title: 'Email Campaigns',
-				createLink: '/email/campaigns/create',
+				createLink: '/email/campaigns/new',
 			},
 		},
 		{
@@ -31,7 +31,7 @@ export function MainNav() {
 			megaMenu: {
 				type: 'templates',
 				title: 'Email Templates',
-				createLink: '/email/templates/create',
+				createLink: '/email/templates/new',
 			},
 		},
 		{
@@ -40,7 +40,7 @@ export function MainNav() {
 			megaMenu: {
 				type: 'contact-lists',
 				title: 'Contact Lists',
-				createLink: '/email/contact-lists/create',
+				createLink: '/email/contact-lists/new',
 			},
 		},
 		{
@@ -49,7 +49,7 @@ export function MainNav() {
 			megaMenu: {
 				type: 'contacts',
 				title: 'Contacts',
-				createLink: '/email/contacts/create',
+				createLink: '/email/contacts/new',
 			},
 		},
 	];

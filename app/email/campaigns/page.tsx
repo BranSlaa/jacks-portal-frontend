@@ -263,9 +263,107 @@ export default function CampaignPage() {
 	];
 
 	const handleEdit = (campaign: Campaign) => {
-		console.log('Edit campaign:', campaign);
-		showSuccess(`Editing campaign: ${campaign.name}`);
 		window.location.href = `/email/campaigns/${campaign.id}/edit`;
+	};
+
+	const handleDuplicate = async (campaign: Campaign) => {
+		try {
+			const baseName = campaign.name.replace(/ \(Copy( \d+)?\)$/, '');
+			const { data: existingCopies, error: searchError } = await supabase
+				.from('campaigns')
+				.select('name')
+				.like('name', `${baseName} (Copy%)`);
+
+			if (searchError) {
+				console.error(
+					'Error searching for existing copies:',
+					searchError,
+				);
+			}
+
+			let newName = `${baseName} (Copy)`;
+
+			if (existingCopies && existingCopies.length > 0) {
+				let highestCopyNum = 0;
+				existingCopies.forEach(copy => {
+					const match = copy.name.match(/\(Copy( (\d+))?\)$/);
+					if (match) {
+						const copyNum = match[2] ? parseInt(match[2]) : 1;
+						if (copyNum > highestCopyNum) {
+							highestCopyNum = copyNum;
+						}
+					}
+				});
+
+				if (highestCopyNum > 0) {
+					newName = `${baseName} (Copy ${highestCopyNum + 1})`;
+				}
+			}
+
+			const duplicatedCampaign = {
+				client_id: campaign.client_id,
+				name: newName,
+				status: 'draft',
+				template_id: campaign.template_id,
+				start_date: campaign.start_date,
+				days_of_week: campaign.days_of_week,
+				max_emails_per_day: campaign.max_emails_per_day,
+			};
+
+			const { error } = await supabase
+				.from('campaigns')
+				.insert([duplicatedCampaign]);
+
+			if (error) throw error;
+
+			showSuccess(`Campaign "${campaign.name}" duplicated successfully`);
+		} catch (error: any) {
+			console.error('Error duplicating campaign:', error);
+			showError(`Failed to duplicate campaign: ${error.message}`);
+		}
+	};
+
+	const handleDelete = async (campaign: Campaign) => {
+		if (
+			!window.confirm(
+				`Are you sure you want to delete "${campaign.name}"?`,
+			)
+		) {
+			return;
+		}
+
+		try {
+			// Delete campaign contacts first
+			const { error: contactsError } = await supabase
+				.from('campaign_contacts')
+				.delete()
+				.eq('campaign_id', campaign.id);
+
+			if (contactsError) throw contactsError;
+
+			// Delete campaign contact lists
+			const { error: listsError } = await supabase
+				.from('campaign_contact_lists')
+				.delete()
+				.eq('campaign_id', campaign.id);
+
+			if (listsError) throw listsError;
+
+			// Finally delete the campaign
+			const { error } = await supabase
+				.from('campaigns')
+				.delete()
+				.eq('id', campaign.id);
+
+			if (error) throw error;
+
+			// Remove from local state
+			setCampaigns(prev => prev.filter(c => c.id !== campaign.id));
+			showSuccess(`Campaign "${campaign.name}" deleted successfully`);
+		} catch (error: any) {
+			console.error('Error deleting campaign:', error);
+			showError(`Failed to delete campaign: ${error.message}`);
+		}
 	};
 
 	// Filter campaigns based on active/archived status
@@ -338,6 +436,8 @@ export default function CampaignPage() {
 					data={activeCampaigns}
 					columns={campaignColumns}
 					onEdit={handleEdit}
+					onDuplicate={handleDuplicate}
+					onDelete={handleDelete}
 				/>
 			)}
 		</div>

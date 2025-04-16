@@ -543,7 +543,7 @@ export default function ContactPage() {
 				</h1>
 				<div className="flex space-x-2">
 					<Link
-						href="/email/contacts/create"
+						href="/email/contacts/new"
 						className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center"
 					>
 						<svg
