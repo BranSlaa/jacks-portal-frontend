@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/FormField';
 import DayPicker from '@/components/ui/DayPicker';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 
 interface CampaignFormProps {
 	campaignId?: string;
@@ -291,32 +292,14 @@ export default function CampaignForm({
 
 	return (
 		<div className="">
-			<div className="mb-6">
-				<Link
-					href={
-						isEdit && campaignId
-							? `/email/campaigns/${campaignId}`
-							: '/email/campaigns'
-					}
-					className="text-blue-600 dark:text-blue-400 hover:underline flex items-center"
-				>
-					<svg
-						className="w-4 h-4 mr-1"
-						fill="none"
-						stroke="currentColor"
-						viewBox="0 0 24 24"
-						xmlns="http://www.w3.org/2000/svg"
-					>
-						<path
-							strokeLinecap="round"
-							strokeLinejoin="round"
-							strokeWidth="2"
-							d="M10 19l-7-7m0 0l7-7m-7 7h18"
-						></path>
-					</svg>
-					{isEdit ? 'Back to Campaign' : 'Back to Campaigns'}
-				</Link>
-			</div>
+			<Breadcrumb
+				items={[
+					{ label: 'Email', href: '/email' },
+					{ label: 'Campaigns', href: '/email/campaigns' },
+					{ label: isEdit ? 'Edit Campaign' : 'New Campaign' },
+				]}
+				homeHref="/dashboard"
+			/>
 
 			<div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
 				<h1 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">

@@ -6,6 +6,7 @@ import PostTable from '@/components/PostTable';
 import { useNotifications } from '@/hooks/useNotifications';
 import Link from 'next/link';
 import { Template } from '@/app/types/templates';
+import { LinkTagList } from '@/components/ui/LinkTagList';
 
 export default function TemplatePage() {
 	const [templates, setTemplates] = useState<Template[]>([]);
@@ -16,111 +17,148 @@ export default function TemplatePage() {
 	const supabase = createClient();
 	const { showError, showSuccess } = useNotifications();
 
-	useEffect(() => {
-		const fetchTemplates = async () => {
-			setLoading(true);
-			const { data, error } = await supabase
-				.from('templates')
-				.select('*')
-				.order('updated_at', { ascending: false });
+	// Define fetchTemplates outside useEffect so it can be called from elsewhere
+	const fetchTemplates = async () => {
+		setLoading(true);
+		const { data, error } = await supabase
+			.from('templates')
+			.select('*')
+			.order('updated_at', { ascending: false });
 
-			if (error) {
-				console.error('Error fetching templates:', error);
-				showError(`Failed to load templates: ${error.message}`);
-			} else if (data) {
-				// Enhance templates with attachment info
-				const enhancedTemplates = await Promise.all(
-					(data || []).map(async template => {
-						// Get media attachments
-						const { data: mediaData, error: mediaError } =
+		if (error) {
+			console.error('Error fetching templates:', error);
+			showError(`Failed to load templates: ${error.message}`);
+		} else if (data) {
+			// Enhance templates with attachment info
+			const enhancedTemplates = await Promise.all(
+				(data || []).map(async template => {
+					// Get media attachments
+					let mediaData: any[] = [];
+					try {
+						const { data: mediaResult, error: mediaError } =
 							await supabase
 								.from('media')
 								.select('id')
 								.eq('template_id', template.id);
 
-						// Get PDF templates
-						const { data: pdfData, error: pdfError } =
-							await supabase
-								.from('pdf_templates')
-								.select('id')
-								.eq('template_id', template.id);
-
-						return {
-							...template,
-							attachments: mediaData || [],
-							pdfTemplateIds: pdfData || [],
-						};
-					}),
-				);
-
-				// Fetch campaigns data for all templates at once
-				const templateIds = enhancedTemplates.map(t => t.id);
-				const { data: campaignsData } = await supabase
-					.from('campaigns')
-					.select('id, name, template_id')
-					.in('template_id', templateIds);
-
-				// Group campaigns by template_id
-				const campaignsMap: { [key: string]: any[] } = {};
-				(campaignsData || []).forEach(campaign => {
-					if (!campaignsMap[campaign.template_id]) {
-						campaignsMap[campaign.template_id] = [];
+						if (!mediaError && mediaResult) {
+							mediaData = mediaResult;
+						}
+					} catch (err) {
+						console.error('Error fetching media attachments:', err);
 					}
-					campaignsMap[campaign.template_id].push(campaign);
-				});
 
-				setCampaignsByTemplate(campaignsMap);
-				setTemplates(enhancedTemplates);
-				showSuccess('Templates loaded successfully');
-			}
-			setLoading(false);
-		};
+					// Get PDF templates
+					let pdfData: any[] = [];
+					try {
+						// Try to get all PDF templates and filter in code
+						const { data: allPdfTemplates, error: pdfError } =
+							await supabase.from('pdf_templates').select('*');
 
+						if (pdfError) {
+							console.error(
+								'PDF Templates query error:',
+								pdfError.message,
+								pdfError.details,
+							);
+						} else if (allPdfTemplates) {
+							// Filter manually in code to avoid potential query issues
+							pdfData = allPdfTemplates
+								.filter(pdf => pdf.template_id === template.id)
+								.map(pdf => ({ id: pdf.id }));
+						}
+					} catch (err) {
+						console.error('Error fetching PDF templates:', err);
+					}
+
+					return {
+						...template,
+						attachments: mediaData,
+						pdfTemplateIds: pdfData,
+					};
+				}),
+			);
+
+			// Fetch campaigns data for all templates at once
+			const templateIds = enhancedTemplates.map(t => t.id);
+			const { data: campaignsData } = await supabase
+				.from('campaigns')
+				.select('id, name, template_id')
+				.in('template_id', templateIds);
+
+			// Group campaigns by template_id
+			const campaignsMap: { [key: string]: any[] } = {};
+			(campaignsData || []).forEach(campaign => {
+				if (!campaignsMap[campaign.template_id]) {
+					campaignsMap[campaign.template_id] = [];
+				}
+				campaignsMap[campaign.template_id].push(campaign);
+			});
+
+			setCampaignsByTemplate(campaignsMap);
+			setTemplates(enhancedTemplates);
+		}
+		setLoading(false);
+	};
+
+	useEffect(() => {
 		fetchTemplates();
 
-		const channel = supabase
-			.channel('templates-changes')
-			.on(
-				'postgres_changes',
-				{ event: 'INSERT', schema: 'public', table: 'templates' },
-				payload => {
-					const newTemplate = payload.new as Template;
-					setTemplates(prev => [...prev, newTemplate]);
-					showSuccess('New template added');
-				},
-			)
-			.on(
-				'postgres_changes',
-				{ event: 'UPDATE', schema: 'public', table: 'templates' },
-				payload => {
-					const updatedTemplate = payload.new as Template;
-					setTemplates(prev =>
-						prev.map(template =>
-							template.id === updatedTemplate.id
-								? updatedTemplate
-								: template,
-						),
-					);
-					showSuccess('Template updated');
-				},
-			)
-			.on(
-				'postgres_changes',
-				{ event: 'DELETE', schema: 'public', table: 'templates' },
-				payload => {
-					const deletedTemplate = payload.old as Template;
-					setTemplates(prev =>
-						prev.filter(
-							template => template.id !== deletedTemplate.id,
-						),
-					);
-					showSuccess('Template deleted');
-				},
-			)
-			.subscribe();
+		// Set up real-time subscription with better error handling
+		let channel: ReturnType<typeof supabase.channel> | null = null;
+		try {
+			channel = supabase
+				.channel('templates-changes')
+				.on(
+					'postgres_changes',
+					{ event: 'INSERT', schema: 'public', table: 'templates' },
+					payload => {
+						const newTemplate = payload.new as Template;
+						setTemplates(prev => [...prev, newTemplate]);
+						showSuccess('New template added');
+					},
+				)
+				.on(
+					'postgres_changes',
+					{ event: 'UPDATE', schema: 'public', table: 'templates' },
+					payload => {
+						const updatedTemplate = payload.new as Template;
+						setTemplates(prev =>
+							prev.map(template =>
+								template.id === updatedTemplate.id
+									? updatedTemplate
+									: template,
+							),
+						);
+						showSuccess('Template updated');
+					},
+				)
+				.on(
+					'postgres_changes',
+					{ event: 'DELETE', schema: 'public', table: 'templates' },
+					payload => {
+						const deletedTemplate = payload.old as Template;
+						setTemplates(prev =>
+							prev.filter(
+								template => template.id !== deletedTemplate.id,
+							),
+						);
+						showSuccess('Template deleted');
+					},
+				);
+		} catch (error) {
+			console.error('Error setting up real-time subscription:', error);
+		}
 
 		return () => {
-			supabase.removeChannel(channel);
+			// Safe cleanup of channel
+			if (channel) {
+				try {
+					supabase.removeChannel(channel);
+				} catch (error) {
+					console.error('Error removing channel:', error);
+				}
+			}
 		};
 	}, [supabase, showError, showSuccess]);
 
@@ -214,21 +252,15 @@ export default function TemplatePage() {
 				const templateCampaigns =
 					campaignsByTemplate[template.id] || [];
 
-				if (templateCampaigns.length === 0) {
-					return <span className="text-gray-400">Not in use</span>;
-				}
-
 				return (
-					<div className="flex flex-wrap gap-2 max-w-xs">
-						{templateCampaigns.map(campaign => (
-							<span
-								key={campaign.id}
-								className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mr-1 mb-1"
-							>
-								{campaign.name}
-							</span>
-						))}
-					</div>
+					<LinkTagList
+						items={templateCampaigns}
+						basePath="/email/campaigns/"
+						emptyMessage="Not in use"
+						emptyClassName="text-gray-400"
+						tagClassName="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mr-1 mb-1"
+						className="max-w-xs"
+					/>
 				);
 			},
 		},
@@ -240,93 +272,76 @@ export default function TemplatePage() {
 
 	const handleDuplicate = async (template: Template) => {
 		try {
-			// Check if there are already copies of this template
-			const baseName = template.name.replace(/ \(Copy( \d+)?\)$/, '');
-			const { data: existingCopies, error: searchError } = await supabase
+			// First, let's strip any existing "(Copy)" text from the template name
+			// to handle multiple duplications cleanly
+			const baseTemplateName = template.name.replace(
+				/ \(Copy( \d+)?\)$/,
+				'',
+			);
+
+			// Find all templates with similar names to determine the next copy number
+			const { data: existingCopies } = await supabase
 				.from('templates')
 				.select('name')
-				.like('name', `${baseName} (Copy%)`);
+				.like('name', `${baseTemplateName} (Copy%`);
 
-			if (searchError) {
-				console.error(
-					'Error searching for existing copies:',
-					searchError,
-				);
-			}
-
-			// Determine the new name with appropriate copy number
-			let newName = `${baseName} (Copy)`;
+			// Determine new name based on existing copies
+			let newName = `${baseTemplateName} (Copy)`;
 
 			if (existingCopies && existingCopies.length > 0) {
-				// Find highest existing copy number
-				let highestCopyNum = 0;
-				existingCopies.forEach(copy => {
-					const match = copy.name.match(/\(Copy( (\d+))?\)$/);
-					if (match) {
-						const copyNum = match[2] ? parseInt(match[2]) : 1;
-						if (copyNum > highestCopyNum) {
-							highestCopyNum = copyNum;
-						}
-					}
+				// Extract copy numbers
+				const copyNumbers = existingCopies.map(t => {
+					const match = t.name.match(/ \(Copy( (\d+))?\)$/);
+					return match && match[2] ? parseInt(match[2]) : 1;
 				});
 
-				// Increment for the new copy
-				if (highestCopyNum > 0) {
-					newName = `${baseName} (Copy ${highestCopyNum + 1})`;
-				}
+				// Find highest number and increment
+				const highestNumber = Math.max(...copyNumbers, 0);
+				newName = `${baseTemplateName} (Copy ${highestNumber + 1})`;
 			}
 
+			// Create duplicated template omitting specific fields that should be generated by DB
+			// eslint-disable-next-line @typescript-eslint/no-unused-vars
+			const { id, created_at, updated_at, attachments, ...templateData } =
+				template;
+
 			const duplicatedTemplate = {
-				...template,
-				id: undefined,
+				...templateData,
 				name: newName,
-				created_at: undefined,
-				updated_at: undefined,
 			};
 
-			const { error } = await supabase
+			// Insert the new template
+			const { data: newTemplate, error } = await supabase
 				.from('templates')
-				.insert([duplicatedTemplate])
-				.select()
+				.insert(duplicatedTemplate)
+				.select('id')
 				.single();
 
 			if (error) throw error;
 
-			// Let's manually fetch the latest data
-			const { data, error: fetchError } = await supabase
-				.from('templates')
-				.select('*')
-				.order('updated_at', { ascending: false });
-
-			if (!fetchError && data) {
-				// Enhance templates with attachment info
-				const enhancedTemplates = await Promise.all(
-					(data || []).map(async template => {
-						// Get media attachments
-						const { data: mediaData, error: mediaError } =
-							await supabase
-								.from('media')
-								.select('id')
-								.eq('template_id', template.id);
-
-						// Get PDF templates
-						const { data: pdfData, error: pdfError } =
-							await supabase
-								.from('pdf_templates')
-								.select('id')
-								.eq('template_id', template.id);
-
-						return {
-							...template,
-							attachments: mediaData || [],
-							pdfTemplateIds: pdfData || [],
-						};
+			// If original template had attachments, duplicate them
+			if (template.attachments && template.attachments.length > 0) {
+				// This could be a separate async operation to speed up initial duplication
+				const duplicateAttachmentsPromise = Promise.all(
+					template.attachments.map(async attachment => {
+						await supabase.from('template_attachments').insert({
+							template_id: newTemplate.id,
+							file_name: attachment.file_name,
+							file_url: attachment.file_url,
+							file_size: attachment.file_size,
+							mime_type: attachment.mime_type,
+						});
 					}),
 				);
-				setTemplates(enhancedTemplates);
+
+				// We're not awaiting this promise to speed up the UI response
+				duplicateAttachmentsPromise.catch(error => {
+					console.error('Error duplicating attachments:', error);
+				});
 			}
 
-			showSuccess(`Template "${template.name}" duplicated successfully`);
+			showSuccess(`Template "${newName}" created successfully`);
+			fetchTemplates();
 		} catch (error: any) {
 			console.error('Error duplicating template:', error);
 			showError(`Failed to duplicate template: ${error.message}`);
@@ -335,33 +350,28 @@ export default function TemplatePage() {
 
 	const handleDelete = async (template: Template) => {
 		if (
-			window.confirm(
+			!window.confirm(
 				`Are you sure you want to delete "${template.name}"?`,
 			)
 		) {
-			try {
-				const { error } = await supabase
-					.from('templates')
-					.delete()
-					.eq('id', template.id);
+			return;
+		}
 
-				if (error) throw error;
+		try {
+			const { error } = await supabase
+				.from('templates')
+				.delete()
+				.eq('id', template.id);
 
-				// Let's manually fetch the latest data
-				const { data, error: fetchError } = await supabase
-					.from('templates')
-					.select('*')
-					.order('updated_at', { ascending: false });
+			if (error) throw error;
 
-				if (!fetchError && data) {
-					setTemplates(data);
-				}
+			// Remove template from state
+			setTemplates(prev => prev.filter(t => t.id !== template.id));
 
-				showSuccess(`Template "${template.name}" deleted successfully`);
-			} catch (error: any) {
-				console.error('Error deleting template:', error);
-				showError(`Failed to delete template: ${error.message}`);
-			}
+			showSuccess(`Template "${template.name}" deleted successfully`);
+		} catch (error: any) {
+			console.error('Error deleting template:', error);
+			showError(`Failed to delete template: ${error.message}`);
 		}
 	};
 

@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useNotifications } from '@/hooks/useNotifications';
 import Link from 'next/link';
 import { Contact } from '@/app/types/contacts';
+import { LinkTagList } from '@/components/ui/LinkTagList';
 
 export default function ContactDetailedPage() {
 	const [contact, setContact] = useState<Contact | null>(null);
@@ -80,7 +81,6 @@ export default function ContactDetailedPage() {
 				}
 
 				setContact(data);
-				showSuccess('Contact details loaded');
 			} catch (error: any) {
 				console.error('Error fetching contact details:', error);
 				showError(`Failed to load contact: ${error.message}`);
@@ -137,7 +137,7 @@ export default function ContactDetailedPage() {
 	}
 
 	return (
-		<div className="p-6 max-w-4xl mx-auto">
+		<div className="p-6 mx-auto">
 			<div className="flex justify-between items-center mb-6">
 				<h1 className="text-2xl font-bold text-gray-900 dark:text-white">
 					{contact.title} {contact.first_name} {contact.last_name}
@@ -200,23 +200,13 @@ export default function ContactDetailedPage() {
 							<p className="text-sm text-gray-500 dark:text-gray-400">
 								Contact Lists
 							</p>
-							{contactLists.length > 0 ? (
-								<div className="flex flex-wrap gap-2 mt-1">
-									{contactLists.map(list => (
-										<Link
-											key={list.id}
-											href={`/email/contact-lists/${list.id}`}
-											className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800 hover:bg-blue-200"
-										>
-											{list.name}
-										</Link>
-									))}
-								</div>
-							) : (
-								<p className="text-gray-800 dark:text-gray-200">
-									Not in any contact lists
-								</p>
-							)}
+							<LinkTagList
+								items={contactLists}
+								basePath="/email/contact-lists/"
+								emptyMessage="Not in any contact lists"
+								className="mt-1"
+								emptyClassName="text-gray-800 dark:text-gray-200"
+							/>
 						</div>
 					</div>
 				</section>

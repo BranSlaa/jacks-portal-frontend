@@ -5,12 +5,7 @@ import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Edit2 } from 'lucide-react';
-
-interface MegaMenuProps {
-	type: 'campaigns' | 'templates' | 'contact-lists' | 'contacts';
-	title: string;
-	createLink: string;
-}
+import { MegaMenuProps } from '@/app/types/ui';
 
 export default function MegaMenu({ type, title, createLink }: MegaMenuProps) {
 	const [recentItems, setRecentItems] = useState<any[]>([]);

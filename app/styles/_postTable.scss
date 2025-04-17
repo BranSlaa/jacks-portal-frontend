@@ -20,7 +20,7 @@
 	@media (min-width: 768px) {
 		grid-auto-flow: row;
 		grid-template-columns: repeat(var(--num-headers), auto);
-		grid-template-rows: repeat(var(--data-length), minmax(120px, 1fr));
+		grid-template-rows: repeat(var(--data-length), auto);
 
 		&-header {
 			grid-column: 1 / -1;

@@ -1,6 +1,6 @@
 export interface Contact {
-	id: string;
-	client_id: string;
+	id: number;
+	client_id: number;
 	title?: string;
 	first_name: string;
 	last_name: string;
@@ -13,5 +13,5 @@ export interface Contact {
 	created_at: string;
 	updated_at: string;
 	client_name?: string;
-	contact_lists?: Array<{id: string, name: string}>;
+	contact_lists?: Array<{id: number, name: string}>;
 }

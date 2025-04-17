@@ -263,10 +263,14 @@ function PostTable<T>({
 						{columns.map(column => (
 							<div
 								key={`${rowIndex}-${column.key}`}
-								className="group relative px-4 py-3 border-b border-r border-gray-200 dark:border-gray-600 text-sm text-gray-800 dark:text-gray-300 truncate hover:overflow-visible hover:whitespace-normal flex flex-col justify-between"
+								className="group relative px-4 py-3 border-b border-r border-gray-200 dark:border-gray-600 text-sm text-gray-800 dark:text-gray-300 truncate hover:overflow-visible hover:whitespace-normal"
 							>
 								{renderCellContent(column, item)}
-								{column.actions && renderActionButtons(item)}
+								{column.actions && (
+									<div className="mt-2">
+										{renderActionButtons(item)}
+									</div>
+								)}
 							</div>
 						))}
 					</div>

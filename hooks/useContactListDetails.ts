@@ -5,7 +5,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { ContactList } from '@/app/types/contactLists';
 import { Contact } from '@/app/types/contacts';
 
-export function useContactListDetails(contactListId: string) {
+export function useContactListDetails(contactListId: number) {
   const [contactList, setContactList] = useState<ContactList | null>(null);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [clientName, setClientName] = useState<string>('');
@@ -70,9 +70,7 @@ export function useContactListDetails(contactListId: string) {
       }
 
       setContactList(data);
-      showSuccess('Contact list details loaded');
     } catch (error: any) {
-      console.error('Error fetching contact list details:', error);
       showError(`Failed to load contact list: ${error.message}`);
     } finally {
       setLoading(false);

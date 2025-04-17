@@ -9,7 +9,7 @@ import { useContactListDetails } from '@/hooks/useContactListDetails';
 
 export default function ContactListDetailedPage() {
 	const params = useParams();
-	const contactListId = params.id as string;
+	const contactListId = parseInt(params.id as string, 10);
 	const { contactList, contacts, clientName, loading } =
 		useContactListDetails(contactListId);
 

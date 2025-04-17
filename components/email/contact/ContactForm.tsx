@@ -12,6 +12,7 @@ import {
 	SecondaryButton,
 } from '@/components/ui/FormField';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 
 interface ContactFormProps {
 	contactId?: string;
@@ -252,32 +253,14 @@ export default function ContactForm({
 
 	return (
 		<div className="">
-			<div className="mb-6">
-				<Link
-					href={
-						isEdit && contactId
-							? `/email/contacts/${contactId}`
-							: '/email/contacts'
-					}
-					className="text-blue-600 dark:text-blue-400 hover:underline flex items-center"
-				>
-					<svg
-						className="w-4 h-4 mr-1"
-						fill="none"
-						stroke="currentColor"
-						viewBox="0 0 24 24"
-						xmlns="http://www.w3.org/2000/svg"
-					>
-						<path
-							strokeLinecap="round"
-							strokeLinejoin="round"
-							strokeWidth="2"
-							d="M10 19l-7-7m0 0l7-7m-7 7h18"
-						></path>
-					</svg>
-					{isEdit ? 'Back to Contact' : 'Back to Contacts'}
-				</Link>
-			</div>
+			<Breadcrumb
+				items={[
+					{ label: 'Email', href: '/email' },
+					{ label: 'Contacts', href: '/email/contacts' },
+					{ label: isEdit ? 'Edit Contact' : 'New Contact' },
+				]}
+				homeHref="/dashboard"
+			/>
 
 			<div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
 				<h1 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">

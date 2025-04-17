@@ -6,18 +6,19 @@ import PostTable from '@/components/PostTable';
 import { useNotifications } from '@/hooks/useNotifications';
 import Link from 'next/link';
 import { Contact } from '@/app/types/contacts';
+import TitleSelector from '@/components/ui/TitleSelector';
 
 export default function ContactPage() {
 	const [contacts, setContacts] = useState<Contact[]>([]);
 	const [loading, setLoading] = useState(true);
-	const [clientNames, setClientNames] = useState<{ [key: string]: string }>(
+	const [clientNames, setClientNames] = useState<{ [key: number]: string }>(
 		{},
 	);
 	const supabase = createClient();
 	const { showError, showSuccess } = useNotifications();
 
 	// Function to fetch client names
-	const fetchClientNames = async (clientIds: string[]) => {
+	const fetchClientNames = async (clientIds: number[]) => {
 		if (!clientIds.length) return {};
 
 		try {
@@ -28,7 +29,7 @@ export default function ContactPage() {
 
 			if (error) throw error;
 
-			const nameMap: { [key: string]: string } = {};
+			const nameMap: { [key: number]: string } = {};
 			data.forEach(client => {
 				nameMap[client.id] = client.name;
 			});
@@ -41,7 +42,7 @@ export default function ContactPage() {
 	};
 
 	// Helper function to get contact lists for a contact
-	const getContactLists = async (contactId: string) => {
+	const getContactLists = async (contactId: number) => {
 		try {
 			// Get list memberships
 			const { data: membershipData, error: membershipError } =
@@ -81,32 +82,6 @@ export default function ContactPage() {
 		}
 	};
 
-	// Title update function
-	const handleTitleUpdate = async (contactId: string, newTitle: string) => {
-		try {
-			const { error } = await supabase
-				.from('contacts')
-				.update({ title: newTitle })
-				.eq('id', contactId);
-
-			if (error) throw error;
-
-			// Update the contact in the local state
-			setContacts(prev =>
-				prev.map(contact =>
-					contact.id === contactId
-						? { ...contact, title: newTitle }
-						: contact,
-				),
-			);
-
-			showSuccess('Title updated successfully');
-		} catch (error: any) {
-			console.error('Error updating title:', error);
-			showError(`Failed to update title: ${error.message}`);
-		}
-	};
-
 	useEffect(() => {
 		const fetchContacts = async () => {
 			setLoading(true);
@@ -134,7 +109,6 @@ export default function ContactPage() {
 
 						return {
 							...contact,
-							list_count: contactLists.length,
 							contact_lists: contactLists,
 							client_name:
 								clientNamesMap[contact.client_id] ||
@@ -144,7 +118,6 @@ export default function ContactPage() {
 				);
 
 				setContacts(enhancedContacts);
-				showSuccess('Contacts loaded successfully');
 			} catch (error: any) {
 				console.error('Error fetching contacts:', error);
 				showError(`Failed to load contacts: ${error.message}`);
@@ -163,8 +136,14 @@ export default function ContactPage() {
 				payload => {
 					const newContact = payload.new as Contact;
 					setContacts(prev => [
+						{
+							...newContact,
+							contact_lists: [],
+							client_name:
+								clientNames[newContact.client_id] ||
+								'Unknown Client',
+						},
 						...prev,
-						{ ...newContact, list_count: 0 },
 					]);
 					showSuccess('New contact added');
 				},
@@ -177,9 +156,12 @@ export default function ContactPage() {
 					setContacts(prev =>
 						prev.map(contact => {
 							if (contact.id === updatedContact.id) {
+								// Preserve the contact_lists array from the existing contact
 								return {
 									...updatedContact,
-									list_count: contact.list_count || 0,
+									contact_lists: contact.contact_lists || [],
+									client_name:
+										contact.client_name || 'Unknown Client',
 								};
 							}
 							return contact;
@@ -208,54 +190,6 @@ export default function ContactPage() {
 		};
 	}, [supabase, showError, showSuccess]);
 
-	// Title selector component
-	const TitleSelector = ({ contact }: { contact: Contact }) => {
-		const titles = ['Mr', 'Mrs', 'Ms', 'Dr', ''];
-		const [isOpen, setIsOpen] = useState(false);
-
-		return (
-			<div className="relative">
-				<button
-					onClick={() => setIsOpen(!isOpen)}
-					className="w-full text-left flex items-center justify-between text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 px-2 py-1 rounded"
-				>
-					{contact.title || 'None'}
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						className="h-4 w-4 ml-1"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-					>
-						<path
-							strokeLinecap="round"
-							strokeLinejoin="round"
-							strokeWidth={2}
-							d={isOpen ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'}
-						/>
-					</svg>
-				</button>
-
-				{isOpen && (
-					<div className="absolute z-10 mt-1 w-24 bg-white dark:bg-gray-800 shadow-lg rounded-md overflow-hidden">
-						{titles.map(title => (
-							<button
-								key={title}
-								className="w-full text-left px-3 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-								onClick={() => {
-									handleTitleUpdate(contact.id, title);
-									setIsOpen(false);
-								}}
-							>
-								{title || 'None'}
-							</button>
-						))}
-					</div>
-				)}
-			</div>
-		);
-	};
-
 	// Contact list tag component
 	const ContactListTags = ({ contact }: { contact: Contact }) => {
 		const lists = contact.contact_lists || [];
@@ -266,7 +200,7 @@ export default function ContactPage() {
 
 		return (
 			<div className="flex flex-wrap gap-1">
-				{lists.map((list: { id: string; name: string }) => (
+				{lists.map((list: { id: number; name: string }) => (
 					<Link
 						key={list.id}
 						href={`/email/contact-lists/${list.id}`}
@@ -281,8 +215,41 @@ export default function ContactPage() {
 
 	const contactColumns = [
 		{
-			key: 'name',
+			key: 'email',
 			actions: true,
+			header: 'Email',
+			render: (contact: Contact) => (
+				<Link
+					href={`/email/contacts/${contact.id}`}
+					className="text-lg text-blue-600 dark:text-blue-400 hover:underline font-bold"
+				>
+					{contact.email}
+				</Link>
+			),
+		},
+		{
+			key: 'title',
+			header: 'Title',
+			render: (contact: Contact) => (
+				<TitleSelector
+					contactId={contact.id}
+					currentTitle={contact.title || ''}
+					onUpdate={newTitle => {
+						// We don't need to update the state here since the TitleSelector component
+						// already has the logic to update the database
+						setContacts(prev =>
+							prev.map(c =>
+								c.id === contact.id
+									? { ...c, title: newTitle }
+									: c,
+							),
+						);
+					}}
+				/>
+			),
+		},
+		{
+			key: 'name',
 			header: 'Name',
 			render: (contact: Contact) => (
 				<Link
@@ -293,15 +260,7 @@ export default function ContactPage() {
 				</Link>
 			),
 		},
-		{
-			key: 'email',
-			header: 'Email',
-			render: (contact: Contact) => (
-				<span className="text-gray-600 dark:text-gray-300">
-					{contact.email}
-				</span>
-			),
-		},
+
 		{
 			key: 'client_name',
 			header: 'Client',
@@ -310,11 +269,6 @@ export default function ContactPage() {
 					{contact.client_name || 'Unknown Client'}
 				</span>
 			),
-		},
-		{
-			key: 'title',
-			header: 'Title',
-			render: (contact: Contact) => <TitleSelector contact={contact} />,
 		},
 		{
 			key: 'job_title',
@@ -407,7 +361,7 @@ export default function ContactPage() {
 				instagram_handle: contact.instagram_handle,
 			};
 
-			const { error } = await supabase
+			const { data, error } = await supabase
 				.from('contacts')
 				.insert([duplicatedContact])
 				.select()
@@ -415,38 +369,49 @@ export default function ContactPage() {
 
 			if (error) throw error;
 
-			// Let's manually fetch the latest data
-			const { data, error: fetchError } = await supabase
-				.from('contacts')
-				.select('*')
-				.order('updated_at', { ascending: false });
+			// Add the new contact to state
+			if (data) {
+				const newContact = {
+					...data,
+					contact_lists: [] as { id: string; name: string }[],
+					client_name:
+						(contact as any).client_name || 'Unknown Client',
+				} as Contact & {
+					contact_lists: { id: string; name: string }[];
+					client_name: string;
+				};
+				setContacts(prev => [newContact, ...prev]);
 
-			if (!fetchError && data) {
-				// Enhance with list membership count
-				const enhancedContacts = await Promise.all(
-					(data || []).map(async contact => {
-						const { data: countData, error: countError } =
-							await supabase
-								.from('contact_list_contacts')
-								.select('contact_list_id')
-								.eq('contact_id', contact.id);
+				// Force refetch data
+				const { data: fetchedData, error: fetchError } = await supabase
+					.from('contacts')
+					.select('*')
+					.order('created_at', { ascending: false })
+					.limit(20);
 
-						if (countError) {
-							console.error('Count error:', countError);
+				if (!fetchError && fetchedData) {
+					// Enhance with client names
+					const clientIds = Array.from(
+						new Set(fetchedData.map(c => c.client_id)),
+					);
+					const clientNamesMap = await fetchClientNames(clientIds);
+
+					// Enhance with list membership info
+					const enhancedContacts = await Promise.all(
+						fetchedData.map(async c => {
+							const contactLists = await getContactLists(c.id);
 							return {
-								...contact,
-								list_count: 0,
+								...c,
+								contact_lists: contactLists,
+								client_name:
+									clientNamesMap[c.client_id] ||
+									'Unknown Client',
 							};
-						}
+						}),
+					);
 
-						return {
-							...contact,
-							list_count: countData?.length || 0,
-						};
-					}),
-				);
-
-				setContacts(enhancedContacts);
+					setContacts(enhancedContacts);
+				}
 			}
 
 			showSuccess(
@@ -459,10 +424,14 @@ export default function ContactPage() {
 	};
 
 	const handleDelete = async (contact: Contact) => {
-		if ((contact.list_count || 0) > 0) {
+		// Use the contact_lists array length instead of list_count
+		const contactLists = contact.contact_lists || [];
+		const listCount = contactLists.length;
+
+		if (listCount > 0) {
 			if (
 				!window.confirm(
-					`This contact is in ${contact.list_count} lists. Are you sure you want to delete "${contact.first_name} ${contact.last_name}"?`,
+					`This contact is in ${listCount} lists. Are you sure you want to delete "${contact.first_name} ${contact.last_name}"?`,
 				)
 			) {
 				return;
@@ -492,39 +461,8 @@ export default function ContactPage() {
 
 			if (error) throw error;
 
-			// Let's manually fetch the latest data
-			const { data, error: fetchError } = await supabase
-				.from('contacts')
-				.select('*')
-				.order('updated_at', { ascending: false });
-
-			if (!fetchError && data) {
-				// Enhance with list membership count
-				const enhancedContacts = await Promise.all(
-					(data || []).map(async contact => {
-						const { data: countData, error: countError } =
-							await supabase
-								.from('contact_list_contacts')
-								.select('contact_list_id')
-								.eq('contact_id', contact.id);
-
-						if (countError) {
-							console.error('Count error:', countError);
-							return {
-								...contact,
-								list_count: 0,
-							};
-						}
-
-						return {
-							...contact,
-							list_count: countData?.length || 0,
-						};
-					}),
-				);
-
-				setContacts(enhancedContacts);
-			}
+			// Remove the contact from state
+			setContacts(prev => prev.filter(item => item.id !== contact.id));
 
 			showSuccess(
 				`Contact "${contact.first_name} ${contact.last_name}" deleted successfully`,

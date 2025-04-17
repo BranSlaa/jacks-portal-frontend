@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/utils/supabase/client';
 import { useNotifications } from '@/hooks/useNotifications';
-import { ContactList } from '@/app/types/contactLists';
+import { ContactList, ContactListFormProps } from '@/app/types/contactLists';
 import {
 	FormField,
 	Input,
@@ -12,11 +12,6 @@ import {
 	SecondaryButton,
 } from '@/components/ui/FormField';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
-
-interface ContactListFormProps {
-	contactListId?: string;
-	isEdit?: boolean;
-}
 
 export default function ContactListForm({
 	contactListId,
@@ -31,7 +26,7 @@ export default function ContactListForm({
 	const [loading, setLoading] = useState(true);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [tagInput, setTagInput] = useState<string>('');
-	const [tags, setTags] = useState<string[]>([]);
+	const [tags, setTags] = useState<{ key: string; value: string }[]>([]);
 
 	const router = useRouter();
 	const { showSuccess, showError } = useNotifications();
@@ -73,7 +68,14 @@ export default function ContactListForm({
 
 					// Initialize tags from JSON if they exist
 					if (data.tags && typeof data.tags === 'object') {
-						setTags(Object.keys(data.tags));
+						// Transform tags object to array of {key, value} objects
+						const tagArray = Object.entries(data.tags).map(
+							([key, value]) => ({
+								key,
+								value: typeof value === 'string' ? value : key,
+							}),
+						);
+						setTags(tagArray);
 					}
 				}
 			} catch (err) {
@@ -92,21 +94,25 @@ export default function ContactListForm({
 	};
 
 	const addTag = () => {
-		if (tagInput.trim() !== '' && !tags.includes(tagInput.trim())) {
-			setTags([...tags, tagInput.trim()]);
+		const trimmedInput = tagInput.trim();
+		if (
+			trimmedInput !== '' &&
+			!tags.some(tag => tag.key === trimmedInput)
+		) {
+			setTags([...tags, { key: trimmedInput, value: trimmedInput }]);
 			setTagInput('');
 		}
 	};
 
-	const removeTag = (tagToRemove: string) => {
-		setTags(tags.filter(tag => tag !== tagToRemove));
+	const removeTag = (tagKey: string) => {
+		setTags(tags.filter(tag => tag.key !== tagKey));
 	};
 
 	// Convert tags array to object for storage
 	const prepareTags = () => {
-		const tagsObject: Record<string, boolean> = {};
+		const tagsObject: Record<string, string> = {};
 		tags.forEach(tag => {
-			tagsObject[tag] = true;
+			tagsObject[tag.key] = tag.value;
 		});
 		return tagsObject;
 	};
@@ -218,15 +224,21 @@ export default function ContactListForm({
 						{/* Client */}
 						<FormField label="Client">
 							<Select
-								value={contactList.client_id || ''}
+								value={
+									contactList.client_id
+										? contactList.client_id.toString()
+										: ''
+								}
 								onChange={e =>
 									handleInputChange(
 										'client_id',
-										e.target.value,
+										e.target.value
+											? parseInt(e.target.value, 10)
+											: null,
 									)
 								}
 								options={clients.map(client => ({
-									value: client.id,
+									value: client.id.toString(),
 									label: client.name,
 								}))}
 								placeholder="Select Client"
@@ -269,14 +281,16 @@ export default function ContactListForm({
 								<div className="flex flex-wrap gap-2 mb-2">
 									{tags.map(tag => (
 										<div
-											key={tag}
+											key={tag.key}
 											className="bg-blue-100 text-blue-800 px-2 py-1 rounded-md flex items-center"
 										>
-											{tag}
+											{tag.value}
 											<button
 												type="button"
 												className="ml-1 text-blue-600 hover:text-blue-800"
-												onClick={() => removeTag(tag)}
+												onClick={() =>
+													removeTag(tag.key)
+												}
 											>
 												<svg
 													className="w-4 h-4"

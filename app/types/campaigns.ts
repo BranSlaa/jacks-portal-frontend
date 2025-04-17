@@ -1,11 +1,11 @@
 export interface Campaign {
-	id: string;
+	id: number;
 	name: string;
 	start_date?: string;
 	end_date?: string;
-	status?: 'draft' | 'active' | 'paused' | 'completed' | 'archived' | 'in-progress' | string;
-	client_id?: string;
-	template_id?: string;
+	status?: 'draft' | 'active' | 'paused' | 'completed' | 'archived' | string;
+	client_id?: number;
+	template_id?: number;
 	sent_today_count?: number;
 	max_emails_per_day?: number;
 	days_of_week?: string[];

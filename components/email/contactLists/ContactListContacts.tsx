@@ -1,17 +1,40 @@
 import { Contact } from '@/app/types/contacts';
+import { ContactListContactsProps } from '@/app/types/contactLists';
 import Link from 'next/link';
 import PostTable from '@/components/PostTable';
-
-interface ContactListContactsProps {
-	contacts: Contact[];
-	contactListId: string;
-}
+import TitleSelector from '@/components/ui/TitleSelector';
+import { useState } from 'react';
 
 export default function ContactListContacts({
-	contacts,
+	contacts: initialContacts,
 	contactListId,
 }: ContactListContactsProps) {
+	const [contacts, setContacts] = useState<Contact[]>(initialContacts);
+
+	const handleTitleUpdate = (contactId: number, newTitle: string) => {
+		setContacts(prevContacts =>
+			prevContacts.map(contact =>
+				contact.id === contactId
+					? { ...contact, title: newTitle }
+					: contact,
+			),
+		);
+	};
+
 	const contactColumns = [
+		{
+			key: 'title',
+			header: 'Title',
+			render: (contact: Contact) => (
+				<TitleSelector
+					contactId={contact.id}
+					currentTitle={contact.title || ''}
+					onUpdate={newTitle =>
+						handleTitleUpdate(contact.id, newTitle)
+					}
+				/>
+			),
+		},
 		{
 			key: 'name',
 			header: 'Name',
@@ -30,15 +53,6 @@ export default function ContactListContacts({
 			render: (contact: Contact) => (
 				<span className="text-gray-600 dark:text-gray-300">
 					{contact.email}
-				</span>
-			),
-		},
-		{
-			key: 'client_name',
-			header: 'Client',
-			render: (contact: Contact) => (
-				<span className="text-gray-600 dark:text-gray-300">
-					{contact.client_name || 'Unknown Client'}
 				</span>
 			),
 		},

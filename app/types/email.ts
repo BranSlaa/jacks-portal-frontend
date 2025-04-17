@@ -11,7 +11,7 @@ export interface EmailEvent {
 
 // Contact types
 export interface ContactData {
-	id: string;
+	id: number;
 	first_name: string | null;
 	last_name: string | null;
 	email: string;
@@ -28,13 +28,13 @@ export interface ContactStatus extends ContactData {
 // Sent email types
 export interface SentEmail {
 	id: number;
-	campaign_id: string;
-	contact_id: string;
+	campaign_id: number;
+	contact_id: number;
 	status: string;
 	sent_at?: string;
 	delivered_at?: string;
 	bounced_at?: string;
-	template_id?: string;
+	template_id?: number;
 	created_at: string;
 }
 

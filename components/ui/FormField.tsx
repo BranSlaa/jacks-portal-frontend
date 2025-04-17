@@ -1,4 +1,5 @@
 import React, { ReactNode } from 'react';
+import { Label } from '@/components/ui/label';
 
 interface FormFieldProps {
 	label: string;
@@ -6,6 +7,7 @@ interface FormFieldProps {
 	error?: string;
 	className?: string;
 	children: ReactNode;
+	labelClassName?: string;
 }
 
 export function FormField({
@@ -13,16 +15,14 @@ export function FormField({
 	htmlFor,
 	error,
 	className = '',
+	labelClassName = 'mb-2 block',
 	children,
 }: FormFieldProps) {
 	return (
 		<div className={`mb-4 ${className}`}>
-			<label
-				htmlFor={htmlFor}
-				className="block text-gray-700 dark:text-gray-300 mb-2"
-			>
+			<Label htmlFor={htmlFor} className={`${labelClassName}`}>
 				{label}
-			</label>
+			</Label>
 			{children}
 			{error && (
 				<p className="mt-1 text-sm text-red-600 dark:text-red-400">

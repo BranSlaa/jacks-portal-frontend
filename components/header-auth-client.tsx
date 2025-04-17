@@ -64,7 +64,7 @@ export default function HeaderAuthClient() {
 				onClick={handleSignOut}
 				type="button"
 				variant={'outline'}
-				className="text-white border-white hover:bg-gray-800"
+				className="text-white border-gray-300 bg-gray-800 hover:bg-gray-900 hover:text-white"
 			>
 				Sign out
 			</Button>
@@ -75,7 +75,7 @@ export default function HeaderAuthClient() {
 				asChild
 				size="sm"
 				variant={'outline'}
-				className="text-white border-white hover:bg-gray-800"
+				className="text-white border-gray-300 bg-gray-800 hover:bg-gray-900 hover:text-white"
 			>
 				<Link href="/sign-in">Sign in</Link>
 			</Button>

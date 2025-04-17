@@ -51,7 +51,6 @@ export default function ContactListPage() {
 				);
 
 				setContactLists(enhancedLists);
-				showSuccess('Contact lists loaded successfully');
 			} catch (error: any) {
 				console.error('Error fetching contact lists:', error);
 				showError(`Failed to load contact lists: ${error.message}`);
@@ -86,7 +85,6 @@ export default function ContactListPage() {
 							if (list.id === updatedList.id) {
 								return {
 									...updatedList,
-									contact_count: list.contact_count || 0,
 								};
 							}
 							return list;
@@ -138,7 +136,7 @@ export default function ContactListPage() {
 		},
 		{
 			key: 'contact_count',
-			header: 'Contacts',
+			header: '# Contacts',
 			render: (list: ContactList) => (
 				<span className="font-medium">{list.contact_count || 0}</span>
 			),
@@ -148,21 +146,6 @@ export default function ContactListPage() {
 			header: 'Last Updated',
 			render: (list: ContactList) =>
 				new Date(list.updated_at).toLocaleDateString('en-CA'),
-		},
-		{
-			key: 'status',
-			header: 'Status',
-			render: (list: ContactList) => (
-				<span
-					className={`px-2 py-1 rounded-full text-xs font-medium ${
-						list.status === 'active'
-							? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100'
-							: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100'
-					}`}
-				>
-					{list.status || 'active'}
-				</span>
-			),
 		},
 	];
 
@@ -211,44 +194,29 @@ export default function ContactListPage() {
 				tags: list.tags,
 			};
 
+			// Insert the new list
 			const { error } = await supabase
 				.from('contact_lists')
-				.insert([duplicatedList])
-				.select()
-				.single();
+				.insert([duplicatedList]);
 
 			if (error) throw error;
 
-			const { data, error: fetchError } = await supabase
-				.from('contact_lists')
-				.select('*')
-				.order('updated_at', { ascending: false });
+			// Fetch the most recently added list
+			const { data: contactListsData, error: contactListsError } =
+				await supabase
+					.from('contact_lists')
+					.select('*')
+					.order('created_at', { ascending: false })
+					.limit(1);
 
-			if (!fetchError && data) {
-				const enhancedLists = await Promise.all(
-					(data || []).map(async list => {
-						const { data: countData, error: countError } =
-							await supabase
-								.from('contact_list_contacts')
-								.select('contact_id')
-								.eq('contact_list_id', list.id);
+			if (contactListsError) throw contactListsError;
 
-						if (countError) {
-							console.error('Count error:', countError);
-							return {
-								...list,
-								contact_count: 0,
-							};
-						}
-
-						return {
-							...list,
-							contact_count: countData?.length || 0,
-						};
-					}),
-				);
-
-				setContactLists(enhancedLists);
+			if (contactListsData && contactListsData.length > 0) {
+				const newList = {
+					...contactListsData[0],
+					contact_count: 0,
+				};
+				setContactLists(prev => [newList, ...prev]);
 			}
 
 			showSuccess(`Contact list "${list.name}" duplicated successfully`);
@@ -288,37 +256,8 @@ export default function ContactListPage() {
 
 			if (error) throw error;
 
-			const { data, error: fetchError } = await supabase
-				.from('contact_lists')
-				.select('*')
-				.order('updated_at', { ascending: false });
-
-			if (!fetchError && data) {
-				const enhancedLists = await Promise.all(
-					(data || []).map(async list => {
-						const { data: countData, error: countError } =
-							await supabase
-								.from('contact_list_contacts')
-								.select('contact_id')
-								.eq('contact_list_id', list.id);
-
-						if (countError) {
-							console.error('Count error:', countError);
-							return {
-								...list,
-								contact_count: 0,
-							};
-						}
-
-						return {
-							...list,
-							contact_count: countData?.length || 0,
-						};
-					}),
-				);
-
-				setContactLists(enhancedLists);
-			}
+			// Remove the list from state
+			setContactLists(prev => prev.filter(item => item.id !== list.id));
 
 			showSuccess(`Contact list "${list.name}" deleted successfully`);
 		} catch (error: any) {

@@ -6,6 +6,7 @@ import PostTable from '@/components/PostTable';
 import { Campaign } from '../../types/campaigns';
 import { useNotifications } from '@/hooks/useNotifications';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 export default function CampaignPage() {
 	const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -61,7 +62,6 @@ export default function CampaignPage() {
 				);
 
 				setCampaigns(enhancedCampaigns);
-				showSuccess('Campaigns loaded successfully');
 			}
 			setLoading(false);
 		};
@@ -310,11 +310,31 @@ export default function CampaignPage() {
 				max_emails_per_day: campaign.max_emails_per_day,
 			};
 
+			// Insert the new campaign
 			const { error } = await supabase
 				.from('campaigns')
 				.insert([duplicatedCampaign]);
 
 			if (error) throw error;
+
+			// Fetch updated data after insert
+			const { data: fetchedData, error: fetchError } = await supabase
+				.from('campaigns')
+				.select('*')
+				.order('created_at', { ascending: false })
+				.limit(1);
+
+			if (fetchError) throw fetchError;
+
+			if (fetchedData && fetchedData.length > 0) {
+				const newCampaign = {
+					...fetchedData[0],
+					totalContacts: 0,
+					sentEmails: 0,
+					progress: 0,
+				};
+				setCampaigns(prev => [newCampaign, ...prev]);
+			}
 
 			showSuccess(`Campaign "${campaign.name}" duplicated successfully`);
 		} catch (error: any) {
@@ -375,6 +395,9 @@ export default function CampaignPage() {
 		}
 	});
 
+	const activeButtonClass =
+		'bg-blue-500 text-white hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700';
+
 	return (
 		<div className="p-4">
 			<div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
@@ -404,27 +427,23 @@ export default function CampaignPage() {
 			</div>
 
 			{/* Tabs */}
-			<div className="flex border-b border-gray-200 mb-6">
-				<button
+			<div className="flex gap-x-4 mb-2">
+				<Button
 					className={`py-2 px-4 text-center text-sm font-medium ${
-						activeTab === 'active'
-							? 'border-b-2 border-blue-500 text-blue-600'
-							: 'text-gray-500 hover:text-gray-700 hover:border-gray-300'
+						activeTab === 'active' ? activeButtonClass : ''
 					}`}
 					onClick={() => setActiveTab('active')}
 				>
 					Active Campaigns
-				</button>
-				<button
+				</Button>
+				<Button
 					className={`py-2 px-4 text-center text-sm font-medium ${
-						activeTab === 'archived'
-							? 'border-b-2 border-blue-500 text-blue-600'
-							: 'text-gray-500 hover:text-gray-700 hover:border-gray-300'
+						activeTab === 'archived' ? activeButtonClass : ''
 					}`}
 					onClick={() => setActiveTab('archived')}
 				>
 					Archived Campaigns
-				</button>
+				</Button>
 			</div>
 
 			{loading ? (
