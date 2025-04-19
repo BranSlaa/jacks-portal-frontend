@@ -42,7 +42,7 @@ import { Button } from '@/components/ui/button';
 import { ImageNode } from './editor/ImageNode';
 import ImagesPlugin from './editor/ImagePlugin';
 import ImageUploadButton from './editor/ImageUploadButton';
-import '@/app/styles/_scrollbar.scss';
+import '@/styles/_scrollbar.scss';
 
 // Simple toolbar component
 function ToolbarPlugin() {

@@ -7,7 +7,7 @@ import { ThemeSwitcher } from '@/components/theme-switcher';
 import HeaderAuthClient from '@/components/header-auth-client';
 import MegaMenu from './MegaMenu';
 import { Menu, X } from 'lucide-react';
-import '@/app/styles/_navigation.scss';
+import '@/styles/_navigation.scss';
 
 export function MainNav() {
 	const pathname = usePathname();

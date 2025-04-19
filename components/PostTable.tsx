@@ -1,5 +1,7 @@
+'use client';
+
 import React, { useState, useMemo } from 'react';
-import '../app/styles/_postTable.scss';
+import '@/styles/_postTable.scss';
 import { Column, SortDirection, PostTableProps } from '../app/types/postTable';
 
 function PostTable<T>({
@@ -21,11 +23,6 @@ function PostTable<T>({
 	}
 
 	const numHeaders = columns.length;
-	const nameColumn = columns.find(
-		col =>
-			col.key.toLowerCase() === 'name' ||
-			col.header.toLowerCase() === 'name',
-	);
 
 	// Sort the data based on the current sort key and direction
 	const sortedData = useMemo(() => {
@@ -263,7 +260,7 @@ function PostTable<T>({
 						{columns.map(column => (
 							<div
 								key={`${rowIndex}-${column.key}`}
-								className="group relative px-4 py-3 border-b border-r border-gray-200 dark:border-gray-600 text-sm text-gray-800 dark:text-gray-300 truncate hover:overflow-visible hover:whitespace-normal"
+								className="group relative px-4 py-3 max-w-[300px] border-b border-r border-gray-200 dark:border-gray-600 text-sm text-gray-800 dark:text-gray-300 truncate hover:overflow-visible hover:whitespace-normal"
 							>
 								{renderCellContent(column, item)}
 								{column.actions && (

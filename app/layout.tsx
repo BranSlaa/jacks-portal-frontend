@@ -5,16 +5,6 @@ import './globals.css';
 import { NotificationProvider } from '@/context/NotificationContext';
 import NotificationTray from '@/components/NotificationTray';
 
-const defaultUrl = process.env.VERCEL_URL
-	? `https://${process.env.VERCEL_URL}`
-	: 'http://localhost:3000';
-
-export const metadata = {
-	metadataBase: new URL(defaultUrl),
-	title: 'Jacks Portal',
-	description: 'Jacks Portal',
-};
-
 const geistSans = Geist({
 	display: 'swap',
 	subsets: ['latin'],

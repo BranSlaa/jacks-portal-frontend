@@ -33,6 +33,7 @@ export default function ContactForm({
 		instagram_handle: '',
 		website: '',
 		phone_number: '',
+		company_address: '',
 	});
 	const [clients, setClients] = useState<any[]>([]);
 	const [contactLists, setContactLists] = useState<any[]>([]);
@@ -159,6 +160,7 @@ export default function ContactForm({
 						instagram_handle: contact.instagram_handle,
 						website: contact.website,
 						phone_number: contact.phone_number,
+						company_address: contact.company_address,
 						updated_at: new Date().toISOString(),
 					})
 					.eq('id', contactId);
@@ -205,6 +207,7 @@ export default function ContactForm({
 						instagram_handle: contact.instagram_handle,
 						website: contact.website,
 						phone_number: contact.phone_number,
+						company_address: contact.company_address,
 					})
 					.select()
 					.single();
@@ -400,6 +403,20 @@ export default function ContactForm({
 								onChange={e =>
 									handleInputChange(
 										'phone_number',
+										e.target.value,
+									)
+								}
+							/>
+						</FormField>
+
+						{/* Company Address */}
+						<FormField label="Company Address">
+							<Input
+								type="text"
+								value={contact.company_address || ''}
+								onChange={e =>
+									handleInputChange(
+										'company_address',
 										e.target.value,
 									)
 								}

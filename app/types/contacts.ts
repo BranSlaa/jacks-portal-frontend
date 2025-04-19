@@ -10,6 +10,7 @@ export interface Contact {
 	job_title?: string;
 	website?: string;
 	phone_number?: string;
+	company_address?: string;
 	created_at: string;
 	updated_at: string;
 	client_name?: string;

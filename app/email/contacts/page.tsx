@@ -7,6 +7,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import Link from 'next/link';
 import { Contact } from '@/app/types/contacts';
 import TitleSelector from '@/components/ui/TitleSelector';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 
 export default function ContactPage() {
 	const [contacts, setContacts] = useState<Contact[]>([]);
@@ -474,7 +475,14 @@ export default function ContactPage() {
 	};
 
 	return (
-		<div className="p-4">
+		<div className="container py-6">
+			<Breadcrumb
+				items={[
+					{ label: 'Email', href: '/email' },
+					{ label: 'Contacts' },
+				]}
+				homeHref="/dashboard"
+			/>
 			<div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
 				<h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-0">
 					Contacts
