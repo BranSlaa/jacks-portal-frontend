@@ -3,6 +3,8 @@ export interface PdfTemplate {
 	name: string;
 	description: string | null;
 	client_id: number;
+	html_content?: string;
+	css_content?: string;
 	clients: {
 		name: string;
 	};

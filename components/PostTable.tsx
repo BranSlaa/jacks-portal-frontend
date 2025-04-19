@@ -236,7 +236,7 @@ function PostTable<T>({
 					{columns.map(column => (
 						<div
 							key={`header-${column.key}`}
-							className={`px-4 py-3 border-b border-r border-gray-200 dark:border-gray-600 font-semibold text-sm text-gray-700 dark:text-gray-200 capitalize whitespace-nowrap ${column.sortable !== false ? 'cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600' : ''}`}
+							className={`px-4 py-3 max-w-[300px] border-b border-r border-gray-200 dark:border-gray-600 font-semibold text-sm text-gray-700 dark:text-gray-200 capitalize whitespace-nowrap ${column.sortable !== false ? 'cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600' : ''}`}
 							onClick={() => handleHeaderClick(column)}
 						>
 							{column.header}
